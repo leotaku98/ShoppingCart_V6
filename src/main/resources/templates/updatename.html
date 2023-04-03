@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Update name</title>
+</head>
+<body>
+
+<form action="/updatename" method="post">
+  <table>
+    <thead>
+    <tr>
+      <td></td>
+      <td></td>
+      <th>New Name</th>
+      <th>New Cost</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="entry : ${values}">
+      <td th:text="${entry.key}"></td>
+      <td th:text="${entry.value}"></td>
+      <td><input type="text" name="updateItemName"></td>
+      <td><input type="number" step="0.01" name="updateItemCost"></td>
+
+    </tr>
+    </tbody>
+  </table>
+  <button type="submit">Submit</button>
+</form>
+
+</body>
+</html>

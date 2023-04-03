@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Delete name</title>
+</head>
+<body>
+
+<form action="/delname" method="post">
+  <table>
+    <tbody>
+    <tr th:each="entry : ${values}">
+      <td th:text="${entry.key}"></td>
+      <td th:text="${entry.value}"></td>
+      <td><input type="checkbox" name="item" th:value="${entry.key}" checked></td>
+    </tr>
+    </tbody>
+  </table>
+  <button type="submit">Submit</button>
+</form>
+
+</body>
+</html>

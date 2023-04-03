@@ -1,25 +1,26 @@
 <!DOCTYPE html>
-<html lang="en">
+<html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8">
-    <title>Title</title>
+  <meta charset="UTF-8">
+  <title>New Custom Product</title>
 </head>
 <body>
-<form action="/cart" method="post">
-  <table>
+
+<form action="/newname" method="post">
+
     <tbody>
     <tr>
-      <td>New item name:</td>
+      <td>Custom Item Name:</td>
       <td></td>
-      <td><input type="text" name="newItemName"></td>
+      <td><input type="text" name="customItemName"></td>
     </tr>
     <tr>
-      <td>New item cost:</td>
+      <td>Custom Item Cost:</td>
       <td></td>
-      <td><input type="number" name="newItemCost" value="0"></td>
+      <td><input type="number" step="0.01" name="customItemCost" value="0"></td>
     </tr>
     </tbody>
-  </table>
+
   <button type="submit">Submit</button>
 </form>
 

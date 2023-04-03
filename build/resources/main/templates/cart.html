@@ -2,11 +2,10 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
   <meta charset="UTF-8">
-  <title>Shopping Cart</title>
+  <title>Cart Page</title>
 </head>
 <body>
-<h1>Shopping Cart</h1>
-<h2>Current Items:</h2>
+
 <form action="/cart" method="post">
   <table>
     <thead>
@@ -16,31 +15,11 @@
     </tr>
     </thead>
     <tbody>
-    <tr>
-      <td>Apple</td>
-      <td><span th:text="${appleCount}"}></span></td>
-    </tr>
-    <tr>
-      <td>Orange</td>
-      <td><span th:text="${orangeCount}"></span></td>
-    </tr>
-    <tr>
-      <td>Pear</td>
-      <td><span th:text="${pearCount}"></span></td>
-    </tr>
-    <tr>
-      <td>Banana</td>
-      <td><span th:text="${bananaCount}"></span></td>
-    </tr>
-    <tr>
-      <td>Custom Item Name:</td>
-      <td></td>
-      <td><input type="text" name="customItemName"></td>
-    </tr>
-    <tr>
-      <td>Custom Item Count:</td>
-      <td></td>
-      <td><input type="number" name="customItemCount" value="0"></td>
+    <tr th:each="entry : ${values}">
+      <td th:text="${entry.key}"></td>
+      <td><input type="number" name="customItemCount" th:value="${entry.value}"></td>
+      <input type="hidden" name="customItemName" th:value="${entry.key}">
+
     </tr>
     </tbody>
   </table>
