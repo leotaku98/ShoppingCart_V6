@@ -21,6 +21,7 @@ public class ShoppingCartTest {
     String session;
     @BeforeEach
     public void init() {
+        System.out.println("Cart test activate!\n");
         try{
             URI uri = new URI("http://localhost:8080/login");
             HttpRequest request = HttpRequest.newBuilder()
@@ -116,9 +117,6 @@ public class ShoppingCartTest {
                     .build();
             HttpResponse<String> response = HttpClient.newHttpClient()
                     .send(request, HttpResponse.BodyHandlers.ofString());
-            System.out.println("Response status code was: " + response.statusCode());
-            System.out.println("Response headers were: " + response.headers());
-            System.out.println("Response body was:\n" + response.body());
             return response;
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -337,7 +335,7 @@ public class ShoppingCartTest {
 
             assertEquals(302, response.statusCode());
 
-            //now we if aceess newname page, we will redirect to Invalid html
+            //now if we aceess newname page, we will redirect to Invalid html
             request = HttpRequest.newBuilder()
                     .uri(new URI("http://localhost:8080/newname"))
                     .header("Cookie", session)

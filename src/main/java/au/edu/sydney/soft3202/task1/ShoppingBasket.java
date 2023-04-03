@@ -105,7 +105,6 @@ public class ShoppingBasket {
 
         for (String name: names) {
             val += this.values.get(name) * this.items.get(name);
-            System.out.println(this.values.get(name) + this.items.get(name));
         }
         if (val == 0.0) return null;
         return val;

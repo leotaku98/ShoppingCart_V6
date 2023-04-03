@@ -37,16 +37,18 @@ public class ShoppingBasketTest {
     @Test
     public void removeItemTest(){
         shoppingBasket.addItem("apple",3);
-        shoppingBasket.addItem("orange",1);
-        shoppingBasket.addItem("pear",1);
-        shoppingBasket.addItem("banana",1);
-
         shoppingBasket.removeItem("apple",3);
-        assertEquals(1.25+3+4.95,shoppingBasket.getValue());
+        assertNull(shoppingBasket.getValue());
+
+        shoppingBasket.addItem("orange",1);
         shoppingBasket.removeItem("orange",1);
-        assertEquals(3+4.95,shoppingBasket.getValue());
+        assertNull(shoppingBasket.getValue());
+
+        shoppingBasket.addItem("pear",1);
         shoppingBasket.removeItem("pear",1);
-        assertEquals(4.95,shoppingBasket.getValue());
+        assertNull(shoppingBasket.getValue());
+
+        shoppingBasket.addItem("banana",1);
         shoppingBasket.removeItem("banana",1);
         assertNull(shoppingBasket.getValue());
     }
