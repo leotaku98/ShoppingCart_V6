@@ -1,5 +1,6 @@
 package au.edu.sydney.soft3202.task1;
 
+
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -9,9 +10,11 @@ import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.thymeleaf.context.Context;
-import org.thymeleaf.spring6.templateresolver.SpringResourceTemplateResolver;
 
+import java.io.File;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.Map.Entry;
 import java.net.URI;
@@ -29,24 +32,33 @@ public class ShoppingController {
 
     Map<String, String> sessions = new HashMap<>();
 
+    private static final String dbName = "shoppingbasket.db";
+    private static final String dbURL = "jdbc:sqlite:" + dbName;
+
     String curUser = "";
 
-    String[] users = {"A", "B", "C", "D", "E"};
+    String[] users = {"Admin", "B", "C", "D", "E"};
+
     private void initNewSB(String user){
         curUser = user;
         if (!sbs.containsKey(user)){
             sbs.put(user, new ShoppingBasket());
         }
-
-
     }
 
     private ShoppingBasket getCurSB(){
         return sbs.get(curUser);
     }
+
+    private void initDb(){
+        Sql.removeDB();
+        Sql.createDB();
+        Sql.setupDB();
+        Sql.addStartingData();
+    }
+
     @PostMapping("/login")
     public ResponseEntity<String> login(@RequestParam(value = "user", defaultValue = "") String user) {
-
         // We are just checking the username, in the real world you would also check their password here
         // or authenticate the user some other way.
         if (!Arrays.asList(users).contains(user)) {
@@ -67,13 +79,18 @@ public class ShoppingController {
         headers.add("Set-Cookie", setCookieHeaderValue);
         initNewSB(user);
 
+        //init db
+        initDb();
+
         // Redirect to the cart page, with the session-cookie-setting headers.
         return ResponseEntity.status(HttpStatus.FOUND).headers(headers).location(URI.create("/cart")).build();
     }
 
     @GetMapping("/logout")
-    public String logout() {
-
+    public String logout(@CookieValue(value = "session", defaultValue = "") String sessionToken, Model model) {
+        if (!sessions.containsKey(sessionToken)) {
+            return "invalid";
+        }
         return "logout";
     }
     @PostMapping("/logout")
@@ -137,10 +154,9 @@ public class ShoppingController {
     public String addNewItem(@RequestParam("customItemName") String itemName,
                              @RequestParam("customItemCost") double itemCost) {
         ShoppingBasket sb = getCurSB();
-        if (sb.names.contains(itemName)){
-            return "redirect:/cart";
+        if (!sb.names.contains(itemName)){
+            sb.addNewItem(itemName.toLowerCase(),itemCost);
         }
-        sb.addNewItem(itemName.toLowerCase(),itemCost);
         return "redirect:/cart";
     }
 
@@ -192,6 +208,7 @@ public class ShoppingController {
         while(index < updateItemCosts.size()){
             String new_cost = updateItemCosts.get(index);
             String new_name = updateItemNames.get(index);
+
             String oldNameCopy = names.get(index);
             String old_name = names.get(index);
             Double old_cost = costs.get(index);
@@ -215,12 +232,6 @@ public class ShoppingController {
         return "redirect:/cart"; // Redirect to the cart page
     }
 
-    @GetMapping("/counter")
-    public ResponseEntity<String> counter() {
-        counter.incrementAndGet();
-        return ResponseEntity.status(HttpStatus.OK).body("[" + counter + "]");
-    }
-
     @GetMapping("/cost")
     public ResponseEntity<String> cost() {
         ShoppingBasket sb = getCurSB();
@@ -228,15 +239,4 @@ public class ShoppingController {
                 sb.getValue() == null ? "0" : sb.getValue().toString()
         );
     }
-
-
-    @GetMapping("/greeting")
-    public String greeting(
-        @RequestParam(name="name", required=false, defaultValue="World") String name,
-        Model model
-    ) {
-        model.addAttribute("name", name);
-        return "greeting";
-    }
-
 }

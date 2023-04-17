@@ -1,6 +1,7 @@
 package au.edu.sydney.soft3202.task1;
 
-import com.google.gson.Gson;
+import org.springframework.boot.SpringApplication;
+import org.springframework.context.ApplicationContext;
 
 import java.io.IOException;
 import java.net.URI;
@@ -8,8 +9,6 @@ import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.util.HashMap;
-import java.util.Map;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,9 +18,10 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class ShoppingCartTest {
     String session;
+    private ApplicationContext context;
     @BeforeEach
     public void init() {
-        System.out.println("Cart test activate!\n");
+        context = SpringApplication.run(ShoppingServiceApplication.class); // Literally just run our application.
         try{
             URI uri = new URI("http://localhost:8080/login");
             HttpRequest request = HttpRequest.newBuilder()
@@ -41,14 +41,80 @@ public class ShoppingCartTest {
                     break;
                 }
             }
-            System.out.println("init working now"+this.session);
         }catch (IOException | InterruptedException e) {
             System.out.println("Something went wrong with our request!");
             System.out.println(e.getMessage());
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }
+    }
 
+    @AfterEach
+    public void logout(){
+        HttpRequest request;
+
+        try {
+            request = HttpRequest.newBuilder()
+                    .uri(new URI("http://localhost:8080/logout"))
+                    .header("Cookie", session)
+                    .POST(HttpRequest.BodyPublishers.noBody())
+                    .build();
+            HttpClient.newHttpClient()
+                    .send(request, HttpResponse.BodyHandlers.ofString());
+        } catch (URISyntaxException | IOException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        SpringApplication.exit(context);
+
+    }
+
+    private HttpResponse<String> addItem(String name, Integer count){
+        URI uri;
+        try {
+            String body = "customItemCount=" + count + "&customItemName=" + name;
+            uri = new URI("http://localhost:8080/cart");
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(uri)
+                    .header("Cookie", session)
+                    .header("Content-Type", "application/x-www-form-urlencoded")
+                    .POST(HttpRequest.BodyPublishers.ofString(body))
+                    .build();
+
+            return HttpClient.newHttpClient()
+                    .send(request, HttpResponse.BodyHandlers.ofString());
+        } catch (IOException | InterruptedException | URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    private HttpResponse<String> getCost(){
+        try {
+            URI costUri = new URI("http://localhost:8080/cost");
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(costUri)
+                    .header("Cookie", session)
+                    .GET()
+                    .build();
+            return HttpClient.newHttpClient()
+                    .send(request, HttpResponse.BodyHandlers.ofString());
+        } catch (IOException | InterruptedException | URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
+
+    }
+
+    public void testInvalid(URI uri){
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(uri)
+                    .header("Cookie", "Not a valid session")
+                    .GET()
+                    .build();
+            HttpResponse<String> response = HttpClient.newHttpClient()
+                    .send(request, HttpResponse.BodyHandlers.ofString());
+            assertTrue(response.body().contains("Invalid template"));
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
     @Test
     public void testLogin() {
@@ -84,76 +150,12 @@ public class ShoppingCartTest {
         }
     }
 
-    private HttpResponse<String> addItem(String name, Integer count){
-        URI uri;
-        try {
-            String body = "customItemCount=" + count + "&customItemName=" + name;
-            uri = new URI("http://localhost:8080/cart");
-            HttpRequest request = HttpRequest.newBuilder()
-                .uri(uri)
-                .header("Cookie", session)
-                .header("Content-Type", "application/x-www-form-urlencoded")
-                .POST(HttpRequest.BodyPublishers.ofString(body))
-                .build();
-
-            HttpResponse<String> response = HttpClient.newHttpClient()
-                    .send(request, HttpResponse.BodyHandlers.ofString());
-            return response;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }catch (URISyntaxException e) {
-            throw new RuntimeException(e);
-        }
-    }
-    private HttpResponse<String> getCost(){
-        try {
-            URI costUri = new URI("http://localhost:8080/cost");
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(costUri)
-                    .header("Cookie", session)
-                    .GET()
-                    .build();
-            HttpResponse<String> response = HttpClient.newHttpClient()
-                    .send(request, HttpResponse.BodyHandlers.ofString());
-            return response;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }catch (URISyntaxException e) {
-            throw new RuntimeException(e);
-        }
-
-    }
-    @AfterEach
-    public void logout(){
-        HttpRequest request = null;
-        try {
-            request = HttpRequest.newBuilder()
-                    .uri(new URI("http://localhost:8080/logout"))
-                    .header("Cookie", session)
-                    .POST(HttpRequest.BodyPublishers.noBody())
-                    .build();
-            HttpResponse<String> response = HttpClient.newHttpClient()
-                    .send(request, HttpResponse.BodyHandlers.ofString());
-        } catch (URISyntaxException e) {
-            throw new RuntimeException(e);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-
-    }
-
     @Test
     public void testCart() {
         try {
             //get request and success
             URI uri = new URI("http://localhost:8080/cart");
-            URI costUri = new URI("http://localhost:8080/cost");
+            testInvalid(uri);
 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(uri)
@@ -167,13 +169,41 @@ public class ShoppingCartTest {
 
             //Test Post Method
             assertEquals(302, addItem("apple",1).statusCode());
+            assertEquals(302, addItem("apple",1).statusCode());
             assertEquals(302, addItem("orange",1).statusCode());
             assertEquals(302, addItem("pear",1).statusCode());
             assertEquals(302, addItem("banana",1).statusCode());
 
             //get cost
             assertEquals(11.7, Double.valueOf(getCost().body()));
+            assertEquals(302, addItem("apple",0).statusCode());
+            assertEquals(9.2, Double.valueOf(getCost().body()));
 
+            //test update non-exist item
+            String body = "customItemCount=100&customItemName=NoExisted";
+            request = HttpRequest.newBuilder()
+                    .uri(uri)
+                    .header("Cookie", session)
+                    .header("Content-Type", "application/x-www-form-urlencoded")
+                    .POST(HttpRequest.BodyPublishers.ofString(body))
+                    .build();
+
+            response = HttpClient.newHttpClient()
+                    .send(request, HttpResponse.BodyHandlers.ofString());
+            assertEquals(302, response.statusCode());//the id no exist, nothing is changed
+
+            //test no count update
+            body = "customItemCount=-100&customItemName=orange";
+            request = HttpRequest.newBuilder()
+                    .uri(uri)
+                    .header("Cookie", session)
+                    .header("Content-Type", "application/x-www-form-urlencoded")
+                    .POST(HttpRequest.BodyPublishers.ofString(body))
+                    .build();
+
+            response = HttpClient.newHttpClient()
+                    .send(request, HttpResponse.BodyHandlers.ofString());
+            assertEquals(302, response.statusCode());//the count is the same, nothing is changed
         } catch (IOException | InterruptedException e) {
             System.out.println("Something went wrong with our request!");
             System.out.println(e.getMessage());
@@ -187,7 +217,7 @@ public class ShoppingCartTest {
         try {
             //get request and success
             URI uri = new URI("http://localhost:8080/newname");
-            URI costUri = new URI("http://localhost:8080/cost");
+            testInvalid(uri);
 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(uri)
@@ -217,6 +247,21 @@ public class ShoppingCartTest {
             //get cost
             assertEquals(100, Double.valueOf(getCost().body()));
 
+            //if the item is already present in cart
+            body = "customItemCost=100&customItemName=apple";
+            request = HttpRequest.newBuilder()
+                    .uri(uri)
+                    .header("Cookie", session)
+                    .header("Content-Type", "application/x-www-form-urlencoded")
+                    .POST(HttpRequest.BodyPublishers.ofString(body))
+                    .build();
+
+            response = HttpClient.newHttpClient()
+                    .send(request, HttpResponse.BodyHandlers.ofString());
+            assertEquals(302, response.statusCode()); //nothing happen
+
+
+
         } catch (IOException | InterruptedException e) {
             System.out.println("Something went wrong with our request!");
             System.out.println(e.getMessage());
@@ -230,7 +275,7 @@ public class ShoppingCartTest {
         try {
             //get request and success
             URI uri = new URI("http://localhost:8080/delname");
-            URI costUri = new URI("http://localhost:8080/cost");
+            testInvalid(uri);
 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(uri)
@@ -273,7 +318,7 @@ public class ShoppingCartTest {
         try {
             //get request and success
             URI uri = new URI("http://localhost:8080/updatename");
-            URI costUri = new URI("http://localhost:8080/cost");
+            testInvalid(uri);
 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(uri)
@@ -293,13 +338,24 @@ public class ShoppingCartTest {
                     .build();
             response = HttpClient.newHttpClient()
                     .send(request, HttpResponse.BodyHandlers.ofString());
-
             assertEquals(302, response.statusCode());
 
             //add new count to the new product,99
             addItem("new",1);
             //the cost should be 1 "new" product,
             assertEquals(99, Double.valueOf(getCost().body()));
+
+            //test if the name and count is null
+            request = HttpRequest.newBuilder()
+                    .uri(uri)
+                    .header("Cookie", session)
+                    .header("Content-Type", "application/x-www-form-urlencoded")
+                    .POST(HttpRequest.BodyPublishers.ofString("updateItemName=&updateItemName=&updateItemName=&updateItemName=&updateItemCost=&updateItemCost=&updateItemCost=1&updateItemCost="))
+                    .build();
+            response = HttpClient.newHttpClient()
+                    .send(request, HttpResponse.BodyHandlers.ofString());
+
+            assertEquals(302, response.statusCode());
 
         } catch (IOException | InterruptedException e) {
             System.out.println("Something went wrong with our request!");
@@ -314,6 +370,7 @@ public class ShoppingCartTest {
         try {
             //get request and success
             URI uri = new URI("http://localhost:8080/logout");
+            testInvalid(uri);
 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(uri)
@@ -351,5 +408,4 @@ public class ShoppingCartTest {
         catch (URISyntaxException ignored) {
         }
     }
-
 }

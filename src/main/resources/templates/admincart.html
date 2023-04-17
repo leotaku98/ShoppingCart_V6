@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<form action="/admincart  " method="post">
+  <table>
+    <tbody>
+    <tr th:each="entry : ${values}">
+      <td th:text="${entry.key}"></td>
+      <td th:text="${entry.value}"></td>
+      <td><input type="checkbox" name="item" th:value="${entry.key}" checked></td>
+    </tr>
+    </tbody>
+  </table>
+  <button type="submit">Submit</button>
+</form>
+<p><a href="/newname">update users</a></p>
+
+</body>
+</html>
