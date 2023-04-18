@@ -8,16 +8,30 @@
 
 <form action="/delname" method="post">
   <table>
-    <tbody>
-    <tr th:each="entry : ${values}">
-      <td th:text="${entry.key}"></td>
-      <td th:text="${entry.value}"></td>
-      <td><input type="checkbox" name="item" th:value="${entry.key}" checked></td>
+    <thead>
+    <tr>
+      <th>select the product you want to remove</th>
+
     </tr>
+    </thead>
+    <tbody>
+
+      <td>
+        <ul>
+          <li th:each="item : ${user.getItem()}">
+            <span th:text="'item: ' + ${item.getName()} + ' cost: ' + ${item.getCost()}"></span>
+            <input type="checkbox" name="itemName" th:value="${item.getName()}" />
+            <input type="hidden" name="itemUser" th:value="${user.getName()}"/>
+          </li>
+        </ul>
+      </td>
+
     </tbody>
   </table>
   <button type="submit">Submit</button>
 </form>
+
+
 
 </body>
 </html>

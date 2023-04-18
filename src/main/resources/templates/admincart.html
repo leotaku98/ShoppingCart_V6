@@ -9,15 +9,14 @@
   <table>
     <tbody>
     <tr th:each="entry : ${values}">
-      <td th:text="${entry.key}"></td>
-      <td th:text="${entry.value}"></td>
-      <td><input type="checkbox" name="item" th:value="${entry.key}" checked></td>
+      <td th:text="${entry}"></td>
+      <td><input type="checkbox" name="item" th:value="${entry}"></td>
     </tr>
     </tbody>
   </table>
-  <button type="submit">Submit</button>
+  <button type="submit">update users</button>
 </form>
-<p><a href="/newname">update users</a></p>
+<p><a href="/updateusers">Add new user</a></p>
 
 </body>
 </html>

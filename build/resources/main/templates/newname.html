@@ -10,16 +10,43 @@
 
     <tbody>
     <tr>
-      <td>Custom Item Name:</td>
-      <td></td>
-      <td><input type="text" name="customItemName"></td>
+        <td>User Names:</td>
+        <td th:each="user : ${users}" th:text="${user.getName()} + ', '"></td>
     </tr>
-    <tr>
-      <td>Custom Item Cost:</td>
-      <td></td>
-      <td><input type="number" step="0.01" name="customItemCost" value="0"></td>
-    </tr>
+
+        <td>
+            <table>
+                <tr>
+                    <td>The user you want to add (select from above):</td>
+                    <td><input type="text" name="customItemUser"></td>
+                </tr>
+                <tr>
+                    <td>Custom Item Name:</td>
+                    <td><input type="text" name="customItemName"></td>
+                </tr>
+                <tr>
+                    <td>Custom Item Cost:</td>
+                    <td><input type="number" step="0.01" name="customItemCost" value="0"></td>
+                </tr>
+            </table>
+
     </tbody>
+
+<!--    <tbody>-->
+
+<!--    <tr>-->
+<!--        <td>The user you want to add:</td>-->
+<!--        <td><input type="text" name="customItemUser"></td>-->
+<!--    </tr>-->
+<!--    <tr>-->
+<!--        <td>Custom Item Name:</td>-->
+<!--        <td><input type="text" name="customItemName"></td>-->
+<!--    </tr>-->
+<!--    <tr>-->
+<!--        <td>Custom Item Cost:</td>-->
+<!--        <td><input type="number" step="0.01" name="customItemCost" value="0"></td>-->
+<!--    </tr>-->
+<!--    </tbody>-->
 
   <button type="submit">Submit</button>
 </form>

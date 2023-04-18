@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>update cart</title>
+</head>
+<body>
+<form action="/updatecart" method="post">
+  <table>
+    <thead>
+    <tr>
+      <th>Item</th>
+      <th>Count</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="user : ${users}">
+      <td th:text="${user.getName()}"></td>
+      <td>
+        <ul>
+          <li th:each="item : ${user.getItem()}">
+            <label th:text="${item.getName()}" for="count"></label>
+            <input type="hidden" id="count" name="itemNames" th:value="${item.getName()}">
+            <input type="number" name="itemCounts" th:value="${item.getCount()}">
+            <input type="hidden" name="itemUsers" th:value="${user.getName()}">
+          </li>
+        </ul>
+      </td>
+    </tr>
+    </tbody>
+  </table>
+  <button type="submit">Submit</button>
+</form>
+
+
+</body>
+</html>

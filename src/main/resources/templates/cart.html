@@ -15,16 +15,22 @@
     </tr>
     </thead>
     <tbody>
-    <tr th:each="entry : ${values}">
-      <td th:text="${entry.key}"></td>
-      <td><input type="number" name="customItemCount" th:value="${entry.value}"></td>
-      <input type="hidden" name="customItemName" th:value="${entry.key}">
 
-    </tr>
+      <td th:text="${user.getName()}"></td>
+      <td>
+        <ul>
+          <li th:each="item : ${user.getItem()}"
+              th:text="'item:'+${item.getName()} + ' count:' + ${item.getCount()} + ' cost:' + ${item.getCost()}">
+          </li>
+        </ul>
+      </td>
+
+
     </tbody>
   </table>
   <button type="submit">Submit</button>
 </form>
+<p><a href="/updatecart">Update Cart Info</a></p>
 <p><a href="/newname">Add New Item</a></p>
 <p><a href="/delname">Remove Item</a></p>
 <p><a href="/updatename">Update Item</a></p>

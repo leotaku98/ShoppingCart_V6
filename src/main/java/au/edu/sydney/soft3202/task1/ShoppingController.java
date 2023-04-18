@@ -1,6 +1,7 @@
 package au.edu.sydney.soft3202.task1;
 
 
+import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -32,12 +33,11 @@ public class ShoppingController {
 
     Map<String, String> sessions = new HashMap<>();
 
-    private static final String dbName = "shoppingbasket.db";
-    private static final String dbURL = "jdbc:sqlite:" + dbName;
-
     String curUser = "";
 
     String[] users = {"Admin", "B", "C", "D", "E"};
+
+    Database db;
 
     private void initNewSB(String user){
         curUser = user;
@@ -50,18 +50,16 @@ public class ShoppingController {
         return sbs.get(curUser);
     }
 
-    private void initDb(){
-        Sql.removeDB();
-        Sql.createDB();
-        Sql.setupDB();
-        Sql.addStartingData();
+    private void initDb() throws SQLException {
+        db = new Database();
+        db.addUser("Admin");
     }
 
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestParam(value = "user", defaultValue = "") String user) {
-        // We are just checking the username, in the real world you would also check their password here
-        // or authenticate the user some other way.
-        if (!Arrays.asList(users).contains(user)) {
+    public ResponseEntity<String> login(@RequestParam(value = "user", defaultValue = "") String user) throws SQLException {
+        //init db
+        initDb();
+        if (db.getUser(user) == null){
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid user.\n");
         }
 
@@ -79,11 +77,53 @@ public class ShoppingController {
         headers.add("Set-Cookie", setCookieHeaderValue);
         initNewSB(user);
 
-        //init db
-        initDb();
+        if (user.equals("Admin")){
+            return ResponseEntity.status(HttpStatus.FOUND).headers(headers).location(URI.create("/admincart")).build();
+        }
 
         // Redirect to the cart page, with the session-cookie-setting headers.
         return ResponseEntity.status(HttpStatus.FOUND).headers(headers).location(URI.create("/cart")).build();
+    }
+
+    @GetMapping("/admincart")
+    public String admincart(@CookieValue(value = "session", defaultValue = "") String sessionToken, Model model) throws SQLException {
+        if (!sessions.containsKey(sessionToken)) {
+            return "invalid";
+        }
+
+        model.addAttribute("values",db.getUsers());
+
+        return "admincart";
+    }
+    @PostMapping("/admincart")
+    public String rmUser(@RequestParam(value="item", required=false) List<String> itemsToRemove) throws InterruptedException, SQLException {
+
+        ArrayList<String> removedItem = new ArrayList<>();
+        if (itemsToRemove==null){
+            return "redirect:/admincart";
+        }
+        for (String user: itemsToRemove){
+            System.out.println(user);
+            db.delUserUS(user);
+            db.delUserSB(user);
+            Thread.sleep(100);
+        }
+        return "redirect:/admincart";
+    }
+
+    @GetMapping("/updateusers")
+    public String updateusers(@CookieValue(value = "session", defaultValue = "") String sessionToken, Model model) {
+        if (!sessions.containsKey(sessionToken)) {
+            return "invalid";
+        }
+        return "updateusers";
+    }
+
+    @PostMapping("/updateusers")
+    public String addNewUser(@RequestParam("userName") String userName) throws SQLException {
+        db.addUser(userName);
+        db.addUsertoSB(userName);
+        return "redirect:/admincart";
     }
 
     @GetMapping("/logout")
@@ -102,82 +142,92 @@ public class ShoppingController {
     }
 
     @GetMapping("/cart")
-    public String cart(@CookieValue(value = "session", defaultValue = "") String sessionToken, Model model) {
+    public String cart(@CookieValue(value = "session", defaultValue = "") String sessionToken, Model model) throws SQLException {
         if (!sessions.containsKey(sessionToken)) {
             return "invalid";
         }
-        ShoppingBasket sb = getCurSB();
-        HashMap<String, Integer> map = new HashMap<>();
-        for (Entry<String, Integer> entry : sb.getItems()) {
-            map.put(entry.getKey(), entry.getValue());
-        }
-        model.addAttribute("values",map);
+        String curUserStr = sessions.get(sessionToken);
+        User curUser = db.getUserSB(curUserStr);
+
+        model.addAttribute("user",curUser);
 
         return "cart";
     }
 
-    @PostMapping("/cart")
-    public String updateCart(@RequestParam(value="customItemCount", required=false) String[] itemCounts,
-                             @RequestParam(value="customItemName", required=false) String[] itemNames) {
+    @PostMapping("/updatecart")
+    public String updateCartPost(@RequestParam(value="itemCounts", required=false) String[] itemCounts,
+                                 @RequestParam(value="itemNames", required=false) String[] itemNames,
+                                 @RequestParam(value="itemUsers", required=false) String[] itemUsers) {
         ShoppingBasket sb = getCurSB();
         int index = 0;
-
         while(index < itemNames.length){
-            if (sb.items.get(itemNames[index]) == null){
-                index += 1;
-                continue;
-            }
-            int changedCount = Integer.valueOf(itemCounts[index]) - sb.items.get(itemNames[index]) ;
-            if (changedCount == 0 || Integer.valueOf(itemCounts[index]) < 0 ){
-                index += 1;
-                continue;
-            }
-            if (changedCount > 0){
-                sb.addItem(itemNames[index], changedCount);
-            }else{
-                sb.removeItem(itemNames[index], -changedCount);
-            }
-
+            db.updateItemCount(Integer.valueOf(itemCounts[index]), itemNames[index],itemUsers[index]);
             index += 1;
         }
         return "redirect:/cart";
     }
 
-    @GetMapping("/newname")
-    public String newname(@CookieValue(value = "session", defaultValue = "") String sessionToken, Model model) {
+    @GetMapping("/updatecart")
+    public String updatecart(@CookieValue(value = "session", defaultValue = "") String sessionToken, Model model) throws SQLException {
         if (!sessions.containsKey(sessionToken)) {
             return "invalid";
         }
+        List<User> users = new ArrayList<>();
+        for(String user: db.getUsers()){
+            User curUsr = db.getUserSB(user);
+            users.add(curUsr);
+        }
+
+        model.addAttribute("users",users);
+
+        return "updatecart";
+    }
+
+    @GetMapping("/newname")
+    public String newname(@CookieValue(value = "session", defaultValue = "") String sessionToken, Model model) throws SQLException {
+        if (!sessions.containsKey(sessionToken)) {
+            return "invalid";
+        }
+        List<User> users = new ArrayList<>();
+        for(String user: db.getUsers()){
+            User curUsr = db.getUserSB(user);
+            users.add(curUsr);
+        }
+
+        model.addAttribute("users",users);
         return "newname";
     }
     @PostMapping("/newname")
-    public String addNewItem(@RequestParam("customItemName") String itemName,
-                             @RequestParam("customItemCost") double itemCost) {
-        ShoppingBasket sb = getCurSB();
-        if (!sb.names.contains(itemName)){
-            sb.addNewItem(itemName.toLowerCase(),itemCost);
-        }
+    public String addNewItem(@RequestParam("customItemUser") String itemUser,
+                            @RequestParam("customItemName") String itemName,
+                             @RequestParam("customItemCost") double itemCost) throws SQLException {
+        db.addNewItem(itemUser, itemName.toLowerCase(), itemCost);
+
         return "redirect:/cart";
     }
 
     @GetMapping("/delname")
-    public String delname(@CookieValue(value = "session", defaultValue = "") String sessionToken, Model model) {
+    public String delname(@CookieValue(value = "session", defaultValue = "") String sessionToken, Model model) throws SQLException {
         if (!sessions.containsKey(sessionToken)) {
             return "invalid";
         }
-        ShoppingBasket sb = getCurSB();
-        model.addAttribute("values", sb.values);
+        String curUserStr = sessions.get(sessionToken);
+        User curUser = db.getUserSB(curUserStr);
+
+
+        model.addAttribute("user",curUser);
         return "delname";
     }
 
     @PostMapping("/delname")
-    public String delItem(@RequestParam(value="item", required=false) List<String> itemsToRemove) {
+    public String delItem(@RequestParam(value="itemName", required=false) List<String> itemNames,
+                          @RequestParam(value="itemUser", required=false) List<String> itemUsers) {
         ShoppingBasket sb = getCurSB();
         ArrayList<String> removedItem = new ArrayList<>();
         for(String item: sb.names){
             removedItem.add(item);
         }
-        removedItem.removeAll(itemsToRemove);
+        removedItem.removeAll(itemNames);
         for(String item: removedItem){
             sb.removeProduct(item);
         }
@@ -185,12 +235,14 @@ public class ShoppingController {
     }
 
     @GetMapping("/updatename")
-    public String updatename(@CookieValue(value = "session", defaultValue = "") String sessionToken, Model model) {
+    public String updatename(@CookieValue(value = "session", defaultValue = "") String sessionToken, Model model) throws SQLException {
         if (!sessions.containsKey(sessionToken)) {
             return "invalid";
         }
-        ShoppingBasket sb = getCurSB();
-        model.addAttribute("values", sb.values);
+        String curUserStr = sessions.get(sessionToken);
+        User curUser = db.getUserSB(curUserStr);
+
+        model.addAttribute("user",curUser);
         return "updatename";
     }
     @PostMapping("/updatename")

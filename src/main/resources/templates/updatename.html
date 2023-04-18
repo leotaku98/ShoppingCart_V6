@@ -6,6 +6,36 @@
 </head>
 <body>
 
+<form action="/delname" method="post">
+  <table>
+    <thead>
+    <tr>
+
+
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="user : ${users}">
+      <td th:text="${user.getName()}"></td>
+      <td>
+        <ul>
+          <li th:each="item : ${user.getItem()}">
+            <span th:text="'Current Item: ' + ${item.getName()} + 'Current Cost: ' + ${item.getCost()}"></span>
+            <input type="hidden" name="itemUser" th:value="${user.getName()}"/>
+            <label for="updateItemName">Update Item Name:</label>
+            <input type="text"  id="updateItemName" name="updateItemName">
+            <label for="updateItemCost">Update Item Cost:</label>
+            <input type="number" id="updateItemCost" step="0.01" name="updateItemCost">
+          </li>
+        </ul>
+      </td>
+    </tr>
+    </tbody>
+  </table>
+  <button type="submit">Submit</button>
+</form>
+
+
 <form action="/updatename" method="post">
   <table>
     <thead>
